@@ -59,7 +59,6 @@ void Anon::release() {
 }
 
 Anon *Anon::copy() {
-  ASSERT(lock.is_locked());
   ASSERT(this->physpage != nullptr);
 
   auto newanon = new Anon(phys_alloc(true).unwrap(), offset);

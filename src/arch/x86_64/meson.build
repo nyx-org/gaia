@@ -1,19 +1,21 @@
 add_languages('nasm')
 
-kernel_srcs += files('hal.cpp',
- 'entry.cpp',
- 'gdt.cpp', 
- 'idt.cpp',
- 'int.cpp',
- 'locore.asm',
- 'syscall.asm',
- 'syscall.cpp',
- 'timer.cpp', 
- 'hpet.cpp',
- 'mmu.cpp',
- 'apic.cpp',
- 'simd.cpp')
-
+kernel_srcs += files(
+        'apic.cpp',
+        'entry.cpp',
+        'gdt.cpp',
+        'hal.cpp',
+        'hpet.cpp',
+        'idt.cpp',
+        'int.cpp',
+        'locore.asm',
+        'mmu.cpp',
+        'simd.cpp',
+        'smp.cpp',
+        'syscall.asm',
+        'syscall.cpp',
+        'timer.cpp',
+)
 
 cpp_args += [
         '-mabi=sysv',
@@ -31,4 +33,5 @@ cpp_args += [
         '-mno-avx2',
         '-mno-avx512f',
         '-mno-red-zone',
-        '-mcmodel=kernel']
+        '-mcmodel=kernel',
+]

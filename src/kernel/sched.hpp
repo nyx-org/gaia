@@ -1,6 +1,5 @@
 // @license:bsd2
 #pragma once
-#include "frg/spinlock.hpp"
 #include <fs/vfs.hpp>
 #include <hal/int.hpp>
 #include <hal/mmu.hpp>
@@ -39,8 +38,6 @@ struct Thread {
   size_t which_event;
   bool blocked;
   bool in_fault = false;
-
-  frg::simple_spinlock lock;
 
   ~Thread();
 };

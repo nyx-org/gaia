@@ -73,6 +73,9 @@ bool Object::fault(Space *map, uintptr_t address, size_t off,
         anon->lock.unlock();
         return false;
       }
+
+      anon->lock.unlock();
+      return false;
     }
 
     auto parent_aent = this->anon.parent->anon.amap->anon_at(off);
@@ -81,7 +84,13 @@ bool Object::fault(Space *map, uintptr_t address, size_t off,
       anon = new Anon(phys_alloc(true).unwrap(), off);
       this->anon.parent->anon.amap->insert_anon(anon);
     }
+
+    anon->lock.lock();
+
     auto new_anon = anon->copy();
+
+    anon->lock.unlock();
+
     anon = new_anon;
     this->anon.amap->insert_anon(anon);
   }

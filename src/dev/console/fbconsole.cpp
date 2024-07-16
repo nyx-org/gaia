@@ -138,8 +138,10 @@ FbConsole::FbConsole(Charon charon) {
       fb.blue_mask_shift, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
       nullptr, nullptr, 0, 0, 0, 1, 1, 0);
 
+  ASSERT(ctx != nullptr);
+
   _system_console = this;
-  this->enable_log = false;
+  this->enable_log = true;
 }
 
 #define SHADOW_COLOR 0x008C8C

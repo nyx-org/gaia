@@ -4,7 +4,7 @@ project(
   default_options: [
     'cpp_std=c++20',
     'build.cpp_std=c++20',
-    'werror=false',
+    'werror=true',
     'buildtype=debug',
     'warning_level=2',
     'b_sanitize=undefined',
@@ -14,7 +14,7 @@ project(
 test_srcs = []
 kernel_srcs = []
 kernel_inc = []
-cpp_args = ['-ffreestanding', '-nostdlib', '-D__KERNEL__']
+cpp_args = ['-ffreestanding', '-nostdlib', '-D__KERNEL__', '-Wthread-safety']
 kernel_deps = []
 test_deps = []
 

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #pragma once
+#include "lib/spinlock.hpp"
 #include <dev/devkit/service.hpp>
 #include <frg/list.hpp>
 #include <frg/unique.hpp>
@@ -31,7 +32,7 @@ private:
   void add_to_graph(DotGraph<Gaia::Vm::HeapAllocator> &graph, Service *parent,
                     Service *child);
 
-  frg::simple_spinlock spinlock;
+  Spinlock spinlock;
 };
 
 struct Driver {
@@ -50,7 +51,7 @@ private:
   };
 
   frg::vector<CatalogEntry, Gaia::Vm::HeapAllocator> drivers;
-  frg::simple_spinlock spinlock;
+  Spinlock spinlock;
 };
 
 Registry &get_registry();

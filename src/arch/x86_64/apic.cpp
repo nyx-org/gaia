@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
+#include "kernel/cpu.hpp"
 #include <dev/acpi/acpi.hpp>
 #include <lib/log.hpp>
 #include <x86_64/apic.hpp>
@@ -228,7 +229,6 @@ void ioapic_init(Dev::AcpiPc *pc) {
 
     i += MAX(2, entry->length);
   }
-  lapic_init();
 
   // Redirect timer to vector 32
   ioapic_redirect_irq(0, 32);
@@ -241,18 +241,19 @@ void ioapic_handle_gsi(uint32_t gsi, Hal::InterruptHandler *handler, void *arg,
                        bool lopol, bool edge, Ipl ipl,
                        Hal::InterruptEntry *entry) {
   auto vec = Hal::allocate_interrupt(ipl, handler, arg, entry).unwrap();
-  ioapic_set_gsi_redirect(0, vec, gsi, lopol, edge);
+  ioapic_set_gsi_redirect(curr_cpu()->num, vec, gsi, lopol, edge);
 }
 
 void ioapic_redirect_irq(uint8_t irq, uint8_t vector) {
   for (auto iso : isos) {
     if (iso->iso.irq_source == irq) {
-      ioapic_set_gsi_redirect(0, vector, iso->iso.gsi, iso->iso.flags);
+      ioapic_set_gsi_redirect(curr_cpu()->num, vector, iso->iso.gsi,
+                              iso->iso.flags);
       return;
     }
   }
 
-  ioapic_set_gsi_redirect(0, vector, irq, 0);
+  ioapic_set_gsi_redirect(curr_cpu()->num, vector, irq, 0);
 }
 
 void lapic_eoi() { lapic_write(LapicReg::EOI, 0); }

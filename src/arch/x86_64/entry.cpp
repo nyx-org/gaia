@@ -121,10 +121,10 @@ extern "C" void _start() {
     __init_array[i]();
   }
 
-  log("Hello from x86_64");
-
+  log_init();
   gdt_init();
-  idt_init();
+
+  log("Hello from x86_64");
 
   auto charon = make_charon();
   auto ret = main(charon);

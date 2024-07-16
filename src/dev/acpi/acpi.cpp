@@ -30,7 +30,7 @@ AcpiPc::AcpiPc(Charon charon) : charon(charon) {
 void AcpiPc::load_drivers() {
 
   if (charon.framebuffer.present) {
-    auto fb = new FbConsole(charon);
+    auto fb = new FbConsole();
     fb->start(this);
   }
 

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #pragma once
 #include "frg/spinlock.hpp"
+#include "lib/spinlock.hpp"
 #include <lib/base.hpp>
 #include <lib/error.hpp>
 #include <lib/result.hpp>
@@ -54,7 +55,7 @@ private:
   void *context[2];
 #endif
 
-  frg::simple_spinlock lock;
+  Spinlock lock;
 };
 
 void init();

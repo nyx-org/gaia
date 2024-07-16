@@ -95,4 +95,31 @@ void gdt_init() {
 
 void gdt_init_tss() { tss.rsp0 = (uintptr_t)Vm::vm_kernel_alloc(6) + 0x6000; }
 
+void gdt_init_ap() {
+  auto new_gdt = new Gdt;
+
+  *new_gdt = {{{0x0000, 0, 0, 0x00, 0x00, 0},       // NULL
+               {0xFFFF, 0, 0, 0x9A, 0x00, 0},       // 16 Bit code
+               {0xFFFF, 0, 0, 0x92, 0x00, 0},       // 16 Bit data
+               {0xFFFF, 0, 0, 0x9A, 0xCF, 0},       // 32 Bit code
+               {0xFFFF, 0, 0, 0x92, 0xCF, 0},       // 32 Bit data
+               {0x0000, 0, 0, 0x9A, 0x20, 0},       // 64 Bit code
+               {0x0000, 0, 0, 0x92, 0x00, 0},       // 64 Bit data
+               {0x0000, 0, 0, 0xF2, 0x00, 0},       // User data
+               {0x0000, 0, 0, 0xFA, 0x20, 0}},      // User code
+              {0x0000, 0, 0, 0x89, 0x00, 0, 0, 0}}; // TSS
+
+  auto new_tss = new Tss();
+  new_tss->iopb_offset = sizeof(Tss);
+  new_tss->rsp0 = (uintptr_t)Vm::vm_kernel_alloc(6) + 0x6000;
+
+  new_gdt->tss = make_tss_entry((uintptr_t)new_tss);
+
+  GdtDescriptor gdt_pointer = {.limit = sizeof(*new_gdt) - 1,
+                               .base = (uint64_t)new_gdt};
+
+  gdt_load(&gdt_pointer);
+  tss_reload();
+}
+
 } // namespace Gaia::x86_64

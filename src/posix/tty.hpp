@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #pragma once
 
-#include "frg/spinlock.hpp"
 #include <asm-generic/termbits.h>
 #include <fs/devfs.hpp>
 #include <kernel/event.hpp>
@@ -24,7 +23,7 @@ public:
 
   using WriteCallback = void(char c, void *context);
 
-  void input(char c);
+  void input(char c) REQUIRES(lock);
 
   void set_write_callback(WriteCallback *callback, void *context) {
     this->callback = callback;
@@ -49,7 +48,7 @@ private:
   frg::array<char, 4096> buffer;
   size_t buf_length, write_cursor, read_cursor;
   size_t rows, cols;
-  frg::simple_spinlock lock;
+  Spinlock lock;
 
   struct termios termios;
   Event read_event;

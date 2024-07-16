@@ -7,6 +7,7 @@
 #include <x86_64/asm.hpp>
 #include <x86_64/cpuid.hpp>
 #include <x86_64/gdt.hpp>
+#include <x86_64/smp.hpp>
 #include <x86_64/syscall.hpp>
 #include <x86_64/timer.hpp>
 
@@ -49,11 +50,9 @@ const size_t PAGE_SIZE = 4096;
 
 void init_devices(Dev::AcpiPc *pc) {
   x86_64::timer_init(pc);
-  x86_64::simd_init();
+  x86_64::smp_init();
   log("CPU is {}", Cpuid::branding().brand);
   x86_64::ioapic_init(pc);
-  x86_64::gdt_init_tss();
-  x86_64::syscall_init();
 }
 
 Ipl get_ipl() { return (Ipl)read_cr8(); }

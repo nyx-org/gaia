@@ -10,6 +10,8 @@ namespace Gaia::Dev {
 class FbConsole : public Service {
 public:
   explicit FbConsole(Charon charon);
+  FbConsole() {}
+
   void start(Service *provider) override;
   void puts(const char *s);
   void puts(const char *s, size_t n);

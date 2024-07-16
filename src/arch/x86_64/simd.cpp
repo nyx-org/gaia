@@ -1,3 +1,4 @@
+#include "kernel/cpu.hpp"
 #include <lib/log.hpp>
 #include <vm/heap.hpp>
 #include <vm/phys.hpp>
@@ -36,7 +37,9 @@ void simd_init(void) {
   write_cr4(read_cr4() | CR4_SIMD_EXCEPTION_SUPPORT);
 
   if (Cpuid::has_ecx_feature(Cpuid::Feature::ECX_XSAVE)) {
-    log("CPU supports xsave");
+
+    if (curr_cpu()->num == 0)
+      log("CPU supports xsave");
     write_cr4(read_cr4() | CR4_XSAVE_ENABLE);
 
     uint64_t xcr0 = 0;
@@ -49,7 +52,8 @@ void simd_init(void) {
     simd_restore = simd_xrstor;
     simd_buffer_size = cpu.ecx;
   } else {
-    log("Using legacy fxsave");
+    if (curr_cpu()->num == 0)
+      log("Using legacy fxsave");
     simd_save = simd_fxsave;
     simd_restore = simd_fxrstor;
     simd_buffer_size = 512;

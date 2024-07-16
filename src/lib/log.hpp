@@ -4,6 +4,8 @@
  * @brief Logging utilities
  */
 #pragma once
+#include "frg/manual_box.hpp"
+#include "lib/spinlock.hpp"
 #include <frg/logging.hpp>
 #include <frg/spinlock.hpp>
 #include <frg/string.hpp>
@@ -56,7 +58,7 @@ struct FormatWithLocation {
 };
 
 extern frg::stack_buffer_logger<DebugSink> logger;
-extern frg::simple_spinlock log_lock;
+extern frg::manual_box<Spinlock> log_lock;
 
 /**
  * @brief Logs a format string
@@ -72,10 +74,6 @@ void log(FormatWithLocation fmt, T... args) {
   return;
 #endif
 
-  if (locked) {
-    log_lock.lock();
-  }
-
   char file_path[256];
 
   // ok... this kinda sucks but hey it's pretty cool
@@ -84,6 +82,9 @@ void log(FormatWithLocation fmt, T... args) {
   // remove .cpp
   file_path[strlen(fmt.file) - 4] = 0;
 
+  if (locked) {
+    log_lock->lock();
+  }
   logger() << frg::fmt("\x1b[32m[{:5}.{:06d}]\x1b[0m ",
                        Hal::get_time_since_boot().seconds,
                        Hal::get_time_since_boot().milliseconds)
@@ -91,7 +92,7 @@ void log(FormatWithLocation fmt, T... args) {
            << frg::fmt(fmt.format, args...) << "\n"
            << frg::endlog;
   if (locked) {
-    log_lock.unlock();
+    log_lock->unlock();
   }
 }
 
@@ -106,7 +107,7 @@ template <bool locked = true, typename... T>
 void error(FormatWithLocation fmt, T... args) {
 
   if (locked) {
-    log_lock.lock();
+    log_lock->lock();
   }
 
   char file_path[256];
@@ -124,7 +125,7 @@ void error(FormatWithLocation fmt, T... args) {
            << frg::fmt(fmt.format, args...) << "\n"
            << frg::endlog;
   if (locked) {
-    log_lock.unlock();
+    log_lock->unlock();
   }
 }
 
@@ -151,4 +152,7 @@ template <typename... T>
 #endif
   Hal::halt();
 }
+
+void log_init();
+
 } // namespace Gaia

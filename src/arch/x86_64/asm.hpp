@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #pragma once
-#include <cstdint>
+#include <stdint.h>
 
 namespace Gaia::x86_64 {
 static inline void outb(uint16_t port, uint8_t data) {
