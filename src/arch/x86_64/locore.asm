@@ -27,22 +27,30 @@ tss_reload:
   ltr ax
   ret
 
+
+%macro SWAPGS_IF_NEEDED 0
+     cmp qword [rsp+16], 0x43
+     jne %%1
+     swapgs
+%%1:
+%endmacro
+
 %macro INTERRUPT_NAME 1
 dq __interrupt%1
 %endmacro
 
 %macro INTERRUPT_ERR 1
 __interrupt%1:
-    SWAPGS_IF_NEEDED
     push %1
+    SWAPGS_IF_NEEDED
     jmp __interrupt_common
 %endmacro
 
 %macro INTERRUPT_NOERR 1
 __interrupt%1:
-    SWAPGS_IF_NEEDED
     push 0    ; no error
     push %1
+    SWAPGS_IF_NEEDED
     jmp __interrupt_common
 %endmacro
 
@@ -82,12 +90,7 @@ __interrupt%1:
     pop rax
 %endmacro
 
-%macro SWAPGS_IF_NEEDED 0
-     test qword [rsp+16], 3
-     jz %%1
-     swapgs
-%%1:
-%endmacro
+
 
 extern interrupts_handler
 
@@ -116,9 +119,9 @@ extern intr_timer_handler
 global timer_interrupt
 
 timer_interrupt:
-    SWAPGS_IF_NEEDED
     push 0
     push 32
+    SWAPGS_IF_NEEDED
     jmp __timer_interrupt
 
 __timer_interrupt:

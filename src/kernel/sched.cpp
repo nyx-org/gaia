@@ -2,13 +2,14 @@
 #include "frg/spinlock.hpp"
 #include "fs/vfs.hpp"
 #include "hal/hal.hpp"
+#include "kernel/ipl.hpp"
 #include "lib/result.hpp"
 #include "posix/fd.hpp"
 #include "vm/phys.hpp"
 #include "vm/vm_kernel.hpp"
 #include "x86_64/apic.hpp"
-#include "x86_64/asm.hpp"
 #include <frg/manual_box.hpp>
+#include <kernel/cpu.hpp>
 #include <kernel/sched.hpp>
 #include <vm/heap.hpp>
 #include <vm/vm.hpp>
@@ -17,14 +18,23 @@ namespace Gaia {
 
 static pid_t current_pid = 0;
 
-static List<Thread, &Thread::link> runq;
 static List<Thread, &Thread::link> to_die;
-static frg::manual_box<frg::simple_spinlock> sched_lock;
+static Spinlock sched_lock;
 static frg::manual_box<frg::simple_spinlock> reaper_lock;
-static Thread *current_thread = nullptr;
+static Vm::Vector<Cpu *> cpus;
 static Task *kernel_task = nullptr;
-static bool restore_frame = false;
-static Thread *idle_thread = nullptr;
+
+static size_t currcpu = 0;
+
+void sched_add_cpu(Cpu *cpu) { cpus.push(cpu); }
+
+static Cpu *get_next_cpu() {
+  if (++currcpu >= cpus.size()) {
+    currcpu = 0;
+  }
+
+  return cpus[currcpu];
+}
 
 pid_t sched_allocate_pid() { return current_pid++; }
 
@@ -46,11 +56,22 @@ Result<Thread *, Error> sched_new_thread(frg::string_view name, Task *task,
   thread->blocked = false;
   thread->state = Thread::RUNNING;
 
+  log("new thread {}", name);
+
+  auto _ipl = iplx(Ipl::HIGH);
+
+  sched_lock.lock();
   task->threads.push(thread);
 
   if (insert) {
-    runq.insert_tail(thread);
+    thread->cpu = get_next_cpu();
+    thread->ctx.gs_base = (&thread->cpu->self);
+    thread->cpu->runqueue.insert_tail(thread);
   }
+
+  sched_lock.unlock();
+
+  iplx(_ipl);
 
   return Ok(thread);
 }
@@ -111,32 +132,30 @@ Task::~Task() {
   delete exit_event;
 }
 
-static Thread *get_next_thread() {
-  if (!runq.head()) {
-    return idle_thread;
+static Thread *get_next_thread(Cpu *cpu) {
+  if (!cpu->runqueue.head()) {
+    return cpu->idle_thread;
   }
 
-  return runq.remove_head().unwrap();
+  return cpu->runqueue.remove_head().unwrap();
 }
 
 void sched_tick(Hal::InterruptFrame *frame) {
-  sched_lock->lock();
+  sched_lock.lock();
 
-  if (restore_frame) {
-    current_thread->ctx.save(frame);
-  } else {
-    restore_frame = true;
-  }
+  ASSERT(curr_cpu()->magic == 0xCAFEBABE);
+
+  current_thread->ctx.save(frame);
 
   if (current_thread->state == Thread::RUNNING &&
-      current_thread != idle_thread) {
-    runq.insert_tail(current_thread);
+      current_thread != curr_cpu()->idle_thread) {
+    curr_cpu()->runqueue.insert_tail(current_thread);
   }
 
-  current_thread = get_next_thread();
-  current_thread->state = Thread::RUNNING;
+  curr_cpu()->curr_thread = get_next_thread(curr_cpu());
+  curr_cpu()->curr_thread->state = Thread::RUNNING;
 
-  sched_lock->unlock();
+  sched_lock.unlock();
 
   current_thread->task->space->activate();
   current_thread->ctx.load(frame);
@@ -151,11 +170,12 @@ void sched_dequeue_and_die() {
 void sched_yield(bool save) {
   Hal::disable_interrupts();
 
-  if (!save) {
+  (void)save;
+  /*if (!save) {
     x86_64::set_gs_base(nullptr);
     x86_64::set_kernel_gs_base(nullptr);
-  }
-  x86_64::lapic_send_ipi(32);
+  }*/
+  x86_64::lapic_send_ipi(curr_cpu()->num, 32);
   Hal::enable_interrupts();
 }
 
@@ -192,13 +212,18 @@ void reaper() {
 Result<Void, Error> sched_init() {
   kernel_task = TRY(sched_new_task(-1, nullptr, false));
 
-  sched_lock.initialize();
   reaper_lock.initialize();
+  sched_lock.construct();
 
-  current_thread = idle_thread = TRY(
-      sched_new_worker_thread("idle thread", (uintptr_t)idle_thread_fn, false));
+  for (auto cpu : cpus) {
+    cpu->runqueue.reset();
+    cpu->idle_thread = TRY(sched_new_worker_thread(
+        "idle thread", (uintptr_t)idle_thread_fn, false));
+    cpu->idle_thread->cpu = cpu;
+    cpu->curr_thread = cpu->idle_thread;
+  }
 
-  TRY(sched_new_worker_thread("reaper", (uintptr_t)reaper));
+  // TRY(sched_new_worker_thread("reaper", (uintptr_t)reaper));
   return Ok({});
 }
 
@@ -213,8 +238,12 @@ Result<Thread *, Error> sched_new_worker_thread(frg::string_view name,
   return sched_new_thread(name, kernel_task, ctx, insert);
 }
 
-void sched_enqueue_thread(Thread *thread) { runq.insert_tail(thread); }
-void sched_dequeue_thread(Thread *thread) { runq.remove(thread); }
+void sched_enqueue_thread(Thread *thread) {
+  curr_cpu()->runqueue.insert_tail(thread);
+}
+void sched_dequeue_thread(Thread *thread) {
+  curr_cpu()->runqueue.remove(thread);
+}
 
 void sched_wake_thread(Thread *thread) {
   thread->state = Thread::RUNNING;

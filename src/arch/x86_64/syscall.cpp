@@ -20,6 +20,7 @@ void syscall_entry(Hal::InterruptFrame *frame) {
     log("R12=0x{:x} R13=0x{:x} R14=0x{:x} R15=0x{:x} RIP={:016x}", frame->r12,
         frame->r13, frame->r14, frame->r15, frame->rip);*/
 
+  log("SYSCALL #{}", frame->rax);
   frame->rax = syscall(frame->rax, params);
 
   /* error("\033[1;34m AFTER \033[0m");

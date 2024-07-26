@@ -2,6 +2,7 @@
 #include "fs/vfs.hpp"
 #include "hal/hal.hpp"
 #include "hal/mmu.hpp"
+#include "kernel/ipl.hpp"
 #include "lib/stream.hpp"
 #include "vm/vm.hpp"
 #include <elf.h>
@@ -23,7 +24,6 @@ struct Auxval {
 
 Result<uintptr_t, Error> elf_load(Task &task, Fs::Vnode vnode, Auxval &auxval,
                                   uintptr_t base = 0, char *ld_path = nullptr) {
-
   auto stream = Fs::VnodeStream(&vnode);
 
   auto elf = TRY(Elf::parse(stream));
@@ -52,6 +52,7 @@ Result<uintptr_t, Error> elf_load(Task &task, Fs::Vnode vnode, Auxval &auxval,
 
     switch (phdr.p_type) {
     case PT_LOAD: {
+
       size_t misalign = phdr.p_vaddr & (4096 - 1);
       size_t page_count = DIV_CEIL(misalign + phdr.p_memsz, 4096);
 
@@ -64,6 +65,7 @@ Result<uintptr_t, Error> elf_load(Task &task, Fs::Vnode vnode, Auxval &auxval,
                                             Hal::Vm::Prot::EXECUTE))
                  .unwrap();
 
+      auto _ipl = iplx(Ipl::HIGH);
       for (size_t i = 0; i < page_count; i++) {
         task.space->fault(addr + i * 0x1000, Vm::Space::WRITE);
       }
@@ -72,6 +74,8 @@ Result<uintptr_t, Error> elf_load(Task &task, Fs::Vnode vnode, Auxval &auxval,
       task.space->activate();
       memcpy((void *)addr, buf, phdr.p_filesz);
       prev_pagemap.activate();
+
+      iplx(_ipl);
 
       if (!has_pt_phdr) {
         // manually figure out where the table is, this is needed for linux
@@ -194,9 +198,9 @@ Result<Void, Error> execve(Task &task, const char *path, char const *argv[],
       stack_base, USER_STACK_SIZE - mapped_stack_length,
       (Hal::Vm::Prot)((int)Hal::Vm::Prot::READ | Hal::Vm::Prot::WRITE));
 
+  auto _ipl = iplx(Ipl::HIGH);
   // Temporarily switch to the task's address space so we can write to the stack
   auto prev_space = Hal::Vm::get_current_map();
-
   task.space->activate();
 
   auto push_string = [&](stack_string &arg) {
@@ -256,6 +260,8 @@ Result<Void, Error> execve(Task &task, const char *path, char const *argv[],
   push_word(args.size());
 
   prev_space.activate();
+
+  iplx(_ipl);
 
   auto kstack =
       (uintptr_t)Vm::vm_kernel_alloc((KERNEL_STACK_SIZE / Hal::PAGE_SIZE)) +

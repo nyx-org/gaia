@@ -12,7 +12,7 @@ void ioapic_init(Dev::AcpiPc *pc);
 void lapic_init();
 void lapic_eoi();
 
-void lapic_send_ipi(uint8_t vector);
+void lapic_send_ipi(uint8_t id, uint8_t vector);
 
 void ioapic_handle_gsi(uint32_t gsi, Hal::InterruptHandler *handler, void *arg,
                        bool lopol, bool edge, Ipl ipl,

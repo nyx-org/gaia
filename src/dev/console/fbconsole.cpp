@@ -15,6 +15,7 @@ namespace Gaia::Dev {
 
 static FbConsole *_system_console = nullptr;
 
+static Spinlock lock;
 constexpr static bool logs_enabled_in_main_console = false;
 
 static inline void putpixel(uint32_t *canvas, size_t pitch, int x, int y,
@@ -129,6 +130,7 @@ static inline void draw_circle(uint32_t *canvas, size_t pitch, int x, int y,
 FbConsole *system_console() { return _system_console; }
 
 FbConsole::FbConsole(Charon charon) {
+  lock.lock();
   fb = charon.framebuffer;
 
   ctx = flanterm_fb_init(
@@ -142,12 +144,16 @@ FbConsole::FbConsole(Charon charon) {
 
   _system_console = this;
   this->enable_log = true;
+
+  lock.unlock();
 }
 
 #define SHADOW_COLOR 0x008C8C
 
 void FbConsole::start(Service *provider) {
   attach(provider);
+
+  lock.lock();
 
   if (_system_console && _system_console->ctx) {
     _system_console->ctx->deinit(_system_console->ctx, nullptr);
@@ -250,14 +256,16 @@ void FbConsole::start(Service *provider) {
       (uint32_t *)canvas, ansi_colors, ansi_bright_colors,
       &colorscheme.default_bg, &colorscheme.default_fg, nullptr, nullptr,
       nullptr, 0, 0, 0, 1, 1, margin + 10);
+  lock.unlock();
 }
 
 void FbConsole::log_output(char c) {
-  ASSERT(ctx != nullptr);
+  lock.lock();
 
   if (this->enable_log) {
     puts(&c, 1);
   }
+  lock.unlock();
 }
 
 void FbConsole::puts(const char *s) {

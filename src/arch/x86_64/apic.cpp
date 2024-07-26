@@ -60,8 +60,8 @@ static uint32_t lapic_read(uint32_t reg) {
       reinterpret_cast<uint32_t *>(Hal::phys_to_virt(addr) + reg));
 }
 
-void lapic_send_ipi(uint8_t vector) {
-  lapic_write(LapicReg::ICR1, (0) << 24);
+void lapic_send_ipi(uint8_t id, uint8_t vector) {
+  lapic_write(LapicReg::ICR1, (id) << 24);
   lapic_write(LapicReg::ICR0, vector);
 }
 

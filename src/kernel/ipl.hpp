@@ -23,6 +23,9 @@ enum class Ipl : uint8_t {
 
   // Where driver interrupts are ran
   DEVICE = 13,
+
+  // Block everything
+  HIGH = 15,
 };
 
 Ipl ipl();

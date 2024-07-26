@@ -163,10 +163,8 @@ void Pagemap::remap(uintptr_t virt, Prot prot, Flags flags) {
   auto mapping = get_mapping(virt);
 
   if (mapping.is_ok()) {
-
-    unmap(virt);
     map(virt, mapping.unwrap().address, prot, flags);
-    asm volatile("invlpg %0" : : "m"(*((const char *)virt)) : "memory");
+    tlb_shootdown(virt);
   }
 }
 
@@ -201,7 +199,7 @@ void Pagemap::unmap(uintptr_t va) {
 
   pml[level] = 0;
 
-  asm volatile("invlpg %0" : : "m"(va) : "memory");
+  tlb_shootdown(va);
   lock.unlock();
 }
 

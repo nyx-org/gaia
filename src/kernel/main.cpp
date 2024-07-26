@@ -18,6 +18,24 @@
 
 using namespace Gaia;
 
+extern bool enable_interrupts_on_other_cores;
+
+constexpr const char *init_program = "/hello";
+constexpr const char *init_argv[] = {init_program, nullptr};
+constexpr const char *init_envp[] = {"SHELL=/usr/bin/bash", nullptr};
+
+static void init_rest() {
+  auto task =
+      sched_new_task(sched_allocate_pid(), sched_kernel_task(), true).unwrap();
+
+  log("Launching init program {}", init_program);
+  execve(*task, init_program, (const char **)init_argv,
+         (const char **)init_envp)
+      .unwrap();
+
+  sched_dequeue_and_die();
+}
+
 Result<Void, Error> Gaia::main(Charon charon) {
   static Dev::FbConsole fbconsole(charon);
 
@@ -38,22 +56,18 @@ Result<Void, Error> Gaia::main(Charon charon) {
 
   Dev::system_console()->create_dev();
 
-  TRY(sched_init());
-
-  auto task =
-      TRY(sched_new_task(sched_allocate_pid(), sched_kernel_task(), true));
-
-  const char *argv[] = {"/usr/bin/init", nullptr};
-  const char *envp[] = {"SHELL=/usr/bin/bash", nullptr};
-
-  log("Launching init program /usr/bin/init");
-  TRY(execve(*task, "/usr/bin/init", argv, envp));
-
   log("Gaia v0.0.1 (git version {}), {} pages are available",
       __GAIA_GIT_VERSION__, Vm::phys_usable_pages());
 
-  Dev::system_console()->clear();
+  TRY(sched_init());
+
+  sched_new_worker_thread("kernel init", (uintptr_t)init_rest);
+
+  enable_interrupts_on_other_cores = true;
   Hal::enable_interrupts();
+  Hal::halt();
+
+  // Dev::system_console()->clear();
 
   return Ok({});
 }

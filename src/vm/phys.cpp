@@ -1,7 +1,5 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 
-#include "frg/spinlock.hpp"
-#include "hal/hal.hpp"
 #include <frg/manual_box.hpp>
 #include <lib/base.hpp>
 #include <lib/freelist.hpp>
@@ -13,7 +11,7 @@ static frg::manual_box<Freelist> freelist{};
 static size_t usable_pages = 0;
 static size_t total_pages = 0;
 static uintptr_t highest_usable_page = 0;
-static frg::manual_box<frg::simple_spinlock> lock;
+static frg::manual_box<Spinlock> lock;
 
 static constexpr inline const char *
 mmap_entry_type_to_string(CharonMmapEntryType type) {
@@ -66,18 +64,25 @@ void phys_init(Charon charon) {
 }
 
 Result<void *, Error> phys_alloc(bool zero) {
-  lock->lock();
   void *ret = nullptr;
-  auto addr = TRY(freelist->alloc());
+
+  lock->lock();
+
+  auto addr = freelist->alloc();
+
+  if (!addr.is_ok()) {
+    lock->unlock();
+    return Err(addr.error().value());
+  }
 
   usable_pages--;
 
   lock->unlock();
 
-  ret = reinterpret_cast<void *>(Hal::virt_to_phys(addr));
+  ret = reinterpret_cast<void *>(Hal::virt_to_phys(addr.value().value()));
 
   if (zero) {
-    memset(reinterpret_cast<void *>(addr), 0, Hal::PAGE_SIZE);
+    memset(reinterpret_cast<void *>(addr.value().value()), 0, Hal::PAGE_SIZE);
   }
 
   return Ok(ret);

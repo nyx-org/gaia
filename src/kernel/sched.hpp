@@ -12,11 +12,15 @@
 // FIXME: Find an architecture-independent way of doing this
 #include <x86_64/idt.hpp>
 
+#define current_thread (curr_cpu()->curr_thread)
+
 namespace Gaia {
 
 constexpr auto TIME_SLICE = 5;
 
 struct Task;
+
+struct Cpu;
 
 struct Thread {
   enum {
@@ -32,6 +36,8 @@ struct Thread {
   Task *task;
 
   Vm::Vector<Task> children;
+
+  Cpu *cpu;
 
   ListNode<Thread> link; // Scheduler queue
 
@@ -80,6 +86,8 @@ Thread *sched_curr();
 
 void sched_enqueue_thread(Thread *thread);
 void sched_dequeue_thread(Thread *thread);
+
+void sched_add_cpu(Cpu *cpu);
 
 [[noreturn]] void sched_dequeue_and_die();
 

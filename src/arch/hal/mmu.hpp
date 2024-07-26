@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #pragma once
-#include "frg/spinlock.hpp"
 #include "lib/spinlock.hpp"
 #include <lib/base.hpp>
 #include <lib/error.hpp>
@@ -60,6 +59,8 @@ private:
 
 void init();
 Pagemap get_current_map();
+
+void tlb_shootdown(uintptr_t vaddr);
 
 } // namespace Vm
 } // namespace Gaia::Hal

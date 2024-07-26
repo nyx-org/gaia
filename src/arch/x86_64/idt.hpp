@@ -7,6 +7,8 @@
 #include <x86_64/asm.hpp>
 #include <x86_64/simd.hpp>
 
+#define TLB_SHOOTDOWN_IPI 240
+
 struct [[gnu::packed]] Gaia::Hal::InterruptFrame {
   uint64_t r15;
   uint64_t r14;
@@ -60,12 +62,8 @@ struct [[gnu::packed]] Gaia::Hal::CpuContext {
       x86_64::simd_restore_state(fpu_regs);
     }
 
-    x86_64::set_gs_base(&info);
-
     if (user && gs_base != nullptr)
       x86_64::set_kernel_gs_base(gs_base);
-    else
-      x86_64::set_kernel_gs_base(&info);
 
     x86_64::set_fs_base(fs_base);
 
@@ -109,7 +107,7 @@ struct [[gnu::packed]] Gaia::Hal::CpuContext {
     regs.ss = user ? 0x3b : 0x30;
     regs.cs = user ? 0x43 : 0x28;
 
-    gs_base = user ? nullptr : &info;
+    gs_base = nullptr;
     fs_base = nullptr;
   }
 };

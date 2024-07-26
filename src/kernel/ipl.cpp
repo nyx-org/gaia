@@ -27,10 +27,12 @@ static void dispatch_dpc() {
 }
 
 static void ipl_lowered(Ipl to) {
+  (void)to;
+  (void)dispatch_dpc;
   // if ipl was lowered below DISPATCH_LEVEL, run DPCs
-  if ((uint64_t)to < (uint64_t)Ipl::DISPATCH) {
+  /*if ((uint64_t)to < (uint64_t)Ipl::DISPATCH) {
     dispatch_dpc();
-  }
+  }*/
 }
 
 Ipl ipl() { return Hal::get_ipl(); }

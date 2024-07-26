@@ -13,21 +13,26 @@ static List<Hal::InterruptEntry, &Hal::InterruptEntry::link> handlers[256];
 
 /* Faster dispatching this way */
 extern "C" uint64_t intr_timer_handler(uint64_t rsp) {
+  auto _ipl = iplx(Ipl::HIGH);
   sched_tick((Hal::InterruptFrame *)rsp);
   lapic_eoi();
-  return (uintptr_t)(&sched_curr()->ctx.regs);
+  iplx(_ipl);
+
+  if (sched_curr())
+    return (uintptr_t)(&sched_curr()->ctx.regs);
+  return rsp;
 }
 
 void fault() { asm volatile(""); }
 
 extern "C" uint64_t interrupts_handler(uint64_t rsp) {
-
   auto stack_frame = (Hal::InterruptFrame *)rsp;
   auto _ipl = ipl();
   bool should_panic = true;
 
   // if pagefault, try resolving it
   if (stack_frame->intno == 0xe && sched_curr()) {
+
     auto space = sched_curr()->task->space;
 
     sched_curr()->in_fault = true;
@@ -62,7 +67,7 @@ extern "C" uint64_t interrupts_handler(uint64_t rsp) {
       error("In thread {} (pid={})", sched_curr()->name,
             sched_curr()->task->pid);
     }
-
+#if 0
     error("Backtrace: ");
 
     auto rbp = (uint64_t *)frame->rbp;
@@ -75,7 +80,7 @@ extern "C" uint64_t interrupts_handler(uint64_t rsp) {
 
       rbp = (uint64_t *)new_rbp;
     }
-
+#endif
     panic("If this wasn't intentional, please report an issue at "
           "https://github.com/nyx-org/nyx");
   }
