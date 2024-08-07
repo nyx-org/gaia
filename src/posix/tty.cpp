@@ -18,6 +18,7 @@ void TTY::push(char c) {
   lock.lock();
 
   if (buf_length == buffer.size()) {
+    lock.unlock();
     return;
   }
 

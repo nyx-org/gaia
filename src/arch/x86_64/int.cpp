@@ -18,8 +18,6 @@ extern "C" uint64_t intr_timer_handler(uint64_t rsp) {
   lapic_eoi();
   iplx(_ipl);
 
-  if (sched_curr())
-    return (uintptr_t)(&sched_curr()->ctx.regs);
   return rsp;
 }
 
@@ -51,21 +49,21 @@ extern "C" uint64_t interrupts_handler(uint64_t rsp) {
 
     fault();
 
-    error("exception: 0x{:x}, err=0x{:x}", frame->intno, frame->err);
-    error("RAX=0x{:x} RBX=0x{:x} RCX=0x{:x} RDX=0x{:x}", frame->rax, frame->rbx,
-          frame->rcx, frame->rdx);
-    error("RSI=0x{:x} RDI=0x{:x} RBP=0x{:x} RSP=0x{:x}", frame->rsi, frame->rdi,
-          frame->rbp, frame->rsp);
-    error("R8=0x{:x}  R9=0x{:x}  R10=0x{:x} R11=0x{:x}", frame->r8, frame->r9,
-          frame->r10, frame->r11);
-    error("R12=0x{:x} R13=0x{:x} R14=0x{:x} R15=0x{:x}", frame->r12, frame->r13,
-          frame->r14, frame->r15);
-    error("CR0=0x{:x} CR2=0x{:x} CR3=0x{:x} RIP=\x1b[1;31m0x{:x}\x1b[0m",
-          read_cr0(), read_cr2(), read_cr3(), frame->rip);
+    error<false>("exception: 0x{:x}, err=0x{:x}", frame->intno, frame->err);
+    error<false>("RAX=0x{:x} RBX=0x{:x} RCX=0x{:x} RDX=0x{:x}", frame->rax,
+                 frame->rbx, frame->rcx, frame->rdx);
+    error<false>("RSI=0x{:x} RDI=0x{:x} RBP=0x{:x} RSP=0x{:x}", frame->rsi,
+                 frame->rdi, frame->rbp, frame->rsp);
+    error<false>("R8=0x{:x}  R9=0x{:x}  R10=0x{:x} R11=0x{:x}", frame->r8,
+                 frame->r9, frame->r10, frame->r11);
+    error<false>("R12=0x{:x} R13=0x{:x} R14=0x{:x} R15=0x{:x}", frame->r12,
+                 frame->r13, frame->r14, frame->r15);
+    error<false>("CR0=0x{:x} CR2=0x{:x} CR3=0x{:x} RIP=\x1b[1;31m0x{:x}\x1b[0m",
+                 read_cr0(), read_cr2(), read_cr3(), frame->rip);
 
     if (sched_curr()) {
-      error("In thread {} (pid={})", sched_curr()->name,
-            sched_curr()->task->pid);
+      error<false>("In thread {} (pid={})", sched_curr()->name,
+                   sched_curr()->task->pid);
     }
 #if 0
     error("Backtrace: ");

@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
+#include "kernel/ipl.hpp"
 #include <dev/acpi/acpi.hpp>
 #include <dev/console/fbconsole.hpp>
 #include <hal/hal.hpp>
@@ -20,8 +21,8 @@ uintptr_t get_tsc_ms();
 namespace Gaia::Hal {
 void debug_output(char c) {
   outb(0xe9, c);
-   if (Dev::system_console()) {
-   Dev::system_console()->log_output(c);
+  if (Dev::system_console()) {
+    Dev::system_console()->log_output(c);
   }
 }
 

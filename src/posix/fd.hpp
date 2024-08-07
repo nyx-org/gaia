@@ -32,6 +32,8 @@ public:
       return Err(EEXIST);
     }
 
+    log("res: {}", res.is_ok());
+
     if (res.is_ok()) {
       auto vnode = res.value().value();
 

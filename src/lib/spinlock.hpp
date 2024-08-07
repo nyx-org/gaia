@@ -8,8 +8,8 @@ namespace Gaia {
 class CAPABILITY("spinlock") Spinlock {
 public:
   Spinlock() { _lock.initialize(); }
-  void lock() ACQUIRE() { _lock->lock(); }
-  void unlock() RELEASE() { _lock->unlock(); }
+  void lock() ACQUIRE();
+  void unlock() RELEASE();
   void construct() {
     if (!_lock.valid())
       _lock.initialize();

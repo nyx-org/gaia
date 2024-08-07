@@ -11,6 +11,7 @@ struct Cpu {
   Hal::CpuData cpu;
   int num;
   Cpu *self;
+  uint32_t other_magic = 0xB00B135;
   Thread *curr_thread, *idle_thread;
   List<Thread, &Thread::link> runqueue;
   uint32_t magic = 0xCAFEBABE;

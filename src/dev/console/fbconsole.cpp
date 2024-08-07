@@ -1,6 +1,7 @@
 #include "backends/fb.h"
 #include "constants.hpp"
 #include "fs/devfs.hpp"
+#include "hal/hal.hpp"
 #include "posix/tty.hpp"
 #include "vm/heap.hpp"
 #include <asm-generic/ioctls.h>
@@ -130,6 +131,8 @@ static inline void draw_circle(uint32_t *canvas, size_t pitch, int x, int y,
 FbConsole *system_console() { return _system_console; }
 
 FbConsole::FbConsole(Charon charon) {
+  lock.construct();
+
   lock.lock();
   fb = charon.framebuffer;
 
@@ -154,7 +157,6 @@ void FbConsole::start(Service *provider) {
   attach(provider);
 
   lock.lock();
-
   if (_system_console && _system_console->ctx) {
     _system_console->ctx->deinit(_system_console->ctx, nullptr);
   }
@@ -256,6 +258,7 @@ void FbConsole::start(Service *provider) {
       (uint32_t *)canvas, ansi_colors, ansi_bright_colors,
       &colorscheme.default_bg, &colorscheme.default_fg, nullptr, nullptr,
       nullptr, 0, 0, 0, 1, 1, margin + 10);
+
   lock.unlock();
 }
 
@@ -280,7 +283,9 @@ void FbConsole::puts(const char *s, size_t n) {
 
 void FbConsole::input(char c) {
   ASSERT(tty != nullptr);
+  tty->lock.lock();
   tty->input(c);
+  tty->lock.unlock();
 }
 
 void FbConsole::create_dev() {

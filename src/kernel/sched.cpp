@@ -155,10 +155,10 @@ void sched_tick(Hal::InterruptFrame *frame) {
   curr_cpu()->curr_thread = get_next_thread(curr_cpu());
   curr_cpu()->curr_thread->state = Thread::RUNNING;
 
-  sched_lock.unlock();
-
   current_thread->task->space->activate();
   current_thread->ctx.load(frame);
+
+  sched_lock.unlock();
 }
 
 void sched_dequeue_and_die() {

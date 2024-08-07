@@ -115,8 +115,10 @@ Result<Vnode *, Error> vfs_find_and(frg::string_view pathname, F function,
   if (segments[0][0] == '/') {
     vn = root_vnode;
     root = true;
+    log("Path is root, {:x}", vn);
   } else {
     vn = cwd ? cwd : root_vnode;
+    log("cwd is {}", cwd);
   }
 
   for (size_t i = root; i < segments.size(); i++) {

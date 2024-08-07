@@ -5,9 +5,11 @@
  */
 #pragma once
 #include "frg/manual_box.hpp"
+
+#ifndef LOG_EXCLUDE_LOCK
 #include "lib/spinlock.hpp"
+#endif
 #include <frg/logging.hpp>
-#include <frg/spinlock.hpp>
 #include <frg/string.hpp>
 #include <frg/string_stub.hpp>
 #include <hal/hal.hpp>
@@ -58,7 +60,10 @@ struct FormatWithLocation {
 };
 
 extern frg::stack_buffer_logger<DebugSink> logger;
+
+#ifndef LOG_EXCLUDE_LOCK
 extern frg::manual_box<Spinlock> log_lock;
+#endif
 
 /**
  * @brief Logs a format string
@@ -82,18 +87,24 @@ void log(FormatWithLocation fmt, T... args) {
   // remove .cpp
   file_path[strlen(fmt.file) - 4] = 0;
 
+#ifndef LOG_EXCLUDE_LOCK
   if (locked) {
     log_lock->lock();
   }
+#endif
+
   logger() << frg::fmt("\x1b[32m[{:5}.{:06d}]\x1b[0m ",
                        Hal::get_time_since_boot().seconds,
                        Hal::get_time_since_boot().milliseconds)
            << frg::fmt("\x1b[33m{}:\x1b[0m ", file_name(file_path))
            << frg::fmt(fmt.format, args...) << "\n"
            << frg::endlog;
+
+#ifndef LOG_EXCLUDE_LOCK
   if (locked) {
     log_lock->unlock();
   }
+#endif
 }
 
 /**
@@ -106,9 +117,11 @@ void log(FormatWithLocation fmt, T... args) {
 template <bool locked = true, typename... T>
 void error(FormatWithLocation fmt, T... args) {
 
+#ifndef LOG_EXCLUDE_LOCK
   if (locked) {
     log_lock->lock();
   }
+#endif
 
   char file_path[256];
 
@@ -124,9 +137,12 @@ void error(FormatWithLocation fmt, T... args) {
            << frg::fmt("\x1b[33m{}:\x1b[0m ", file_name(file_path))
            << frg::fmt(fmt.format, args...) << "\n"
            << frg::endlog;
+
+#ifndef LOG_EXCLUDE_LOCK
   if (locked) {
     log_lock->unlock();
   }
+#endif
 }
 
 /**

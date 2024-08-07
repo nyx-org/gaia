@@ -67,9 +67,7 @@ struct [[gnu::packed]] Gaia::Hal::CpuContext {
 
     x86_64::set_fs_base(fs_base);
 
-    (void)regs;
-
-    // memcpy(regs, &this->regs, sizeof(this->regs));
+    memcpy(regs, &this->regs, sizeof(this->regs));
   }
 
   void save(InterruptFrame *regs) {

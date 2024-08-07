@@ -20,7 +20,7 @@ using namespace Gaia;
 
 extern bool enable_interrupts_on_other_cores;
 
-constexpr const char *init_program = "/hello";
+constexpr const char *init_program = "/usr/bin/init";
 constexpr const char *init_argv[] = {init_program, nullptr};
 constexpr const char *init_envp[] = {"SHELL=/usr/bin/bash", nullptr};
 

@@ -43,12 +43,13 @@ public:
     Result<Fs::VnodeAttr, Error> getattr(dev_t minor) override;
   } ops;
 
+  Spinlock lock;
+
 private:
   // Ringbuffer
   frg::array<char, 4096> buffer;
   size_t buf_length, write_cursor, read_cursor;
   size_t rows, cols;
-  Spinlock lock;
 
   struct termios termios;
   Event read_event;

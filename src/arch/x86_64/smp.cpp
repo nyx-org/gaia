@@ -12,8 +12,12 @@
 #include <lib/log.hpp>
 #include <x86_64/limine.h>
 
-static volatile struct limine_smp_request smprequest = {.id =
-                                                            LIMINE_SMP_REQUEST};
+static volatile struct limine_smp_request smprequest = {
+    .id = LIMINE_SMP_REQUEST,
+    .revision = 0,
+    .response = nullptr,
+    .flags = 0,
+};
 
 bool enable_interrupts_on_other_cores = false;
 static size_t ncpus = 0;

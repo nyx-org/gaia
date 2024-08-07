@@ -17,7 +17,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#define TRACE 0
+#define TRACE 1
 
 namespace Gaia {
 
@@ -127,6 +127,7 @@ uint64_t sys_read(SyscallParams params) {
   auto buf = (void *)params.param2;
   auto count = params.param3;
 
+  log("reading from fd {}", fdnum);
   auto fd = sched_curr()->task->fds.get(fdnum);
 
   if (!fd.has_value()) {
@@ -187,6 +188,7 @@ uint64_t sys_openat(SyscallParams params) {
   const char *pathname = (const char *)params.param2;
   int flags = (int)params.param3;
 
+  log("openat: {}", pathname);
   if (dirfd != AT_FDCWD) {
     error("openat: TODO: add support for dirfd != AT_FDCWD");
     return -EBADF;
@@ -195,12 +197,14 @@ uint64_t sys_openat(SyscallParams params) {
   auto fd = Posix::Fd::open(pathname, flags);
 
   if (fd.is_err()) {
+    log("Open error");
     return -(fd.error().value());
   }
 
   auto ret = sched_curr()->task->fds.allocate(new Posix::Fd{fd.unwrap()});
 
   if (!ret.has_value()) {
+    log("fd alloc error");
     return -EBADF;
   }
 
@@ -687,6 +691,7 @@ uint64_t sys_getdents64(SyscallParams params) {
 #endif
 
 uint64_t syscall(int num, SyscallParams params) {
+  log<false>("syscall here");
   switch (num) {
   case SYS_read:
     return DO_TRACE(sys_read(params));
